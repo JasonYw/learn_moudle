@@ -80,7 +80,7 @@ def example3():
         print("alarm:",time.time())
 
     signal.signal(signal.SIGALRM,receive_alarm)
-    signal.alarm(2) #当程序停留超过两秒则自动，发出信号，并且中断sleep
+    signal.alarm(2) #当程序停留超过两秒则自动，发出信号
 
     print("1:",time.ctime())
     time.sleep(4)
