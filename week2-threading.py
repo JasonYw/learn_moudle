@@ -285,6 +285,202 @@ def model8():
     )
 
     worker_t.start()
+
+
+def model9():
+    lock =threading.RLock()
+    print('First try:',lock.acquire())
+    print('second try:',lock.acquire(0))
+
+
+def model10():
+    def worker_with(lock):
+        with lock:
+            logging.debug('lock acquired via with')
+
+    def worker_no_with(lock):
+        lock.acquire()
+        try:
+            logging.debug('lock acquired directly')
+        finally:
+            lock.release()
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='(%(threadName)-10s) %(message)s'
+    )
+
+    lock =threading.Lock()
+    j0 =threading.Thread(target=worker_with,args=(lock,))
+    j1 =threading.Thread(target=worker_no_with,args=(lock,)) 
+
+    j0.start()
+    j1.start()
+
+def model11():
+    def consumer(cond):
+        logging.debug('starting consumer thread')
+        with cond:
+            cond.wait() #设置等待
+            logging.debug('resource is available to consumer')
+    
+    def producer(cond):
+        logging.debug('starting producer thread')
+        with cond:
+            logging.debug('making resource available')
+            cond.notifyAll() #设置条件，通知线程
+    
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='(%(threadName)-10s) %(message)s'
+    )
+
+    condition =threading.Condition()
+    h0 =threading.Thread(name='c1',target=consumer,args=(condition,))
+    h1 =threading.Thread(name='c2',target=consumer,args=(condition,))
+    h2 =threading.Thread(name='p',target=producer,args=(condition,))
+
+    h0.start()
+    time.sleep(0.2)
+    h1.start()
+    time.sleep(0.2)
+    h2.start()
+
+def model12():
+    def worker(barrier):
+        print(threading.current_thread().name,'waiting for barrier with {} others'.format(barrier.n_waiting))
+        worker_id =barrier.wait()
+        print(threading.current_thread().name,'after barrier',worker_id)
+    
+    NUM_THREADS =3
+    barrier =threading.Barrier(NUM_THREADS)
+    threads =[
+        threading.Thread(
+            name='worker-%s' % i,
+            target=worker,
+            args=(barrier,),
+        )
+        for i in range(NUM_THREADS)
+    ]
+
+    for t in threads:
+        print(t.name,'starting')
+        t.start()
+        time.sleep(0.1)
+    
+    for t in threads:
+        t.join()
+
+
+def model13():
+    def worker(barrier):
+        print(threading.current_thread().name,'waiting for barrier with {} others'.format(barrier.n_waiting))
+        try:
+            worker_id =barrier.wait()
+        except threading.BrokenBarrierError:
+            print(threading.current_thread().name,'aborting')
+        else:
+            print(threading.current_thread().name,'after barrier',worker_id)
+    
+    NUM_THREADS =3
+    barrier =threading.Barrier(NUM_THREADS+1)
+
+
+    threads =[
+        threading.Thread(
+            name='worker-%s' % i,
+            target=worker,
+            args=(barrier,),
+        )
+        for i in range(NUM_THREADS)
+    ]
+
+    for t in threads:
+        print(t.name,'starting')
+        t.start()
+        time.sleep(0.1)
+    
+    barrier.abort() #引发异常
+
+    for t in threads:
+        t.join()
+
+def model14():
+    class ActivePool():
+        def __init__(self):
+            super(ActivePool,self).__init__()
+            self.active =[]
+            self.lock =threading.Lock()
         
+        def makeActive(self,name):
+            with self.lock:
+                self.active.append(name)
+                logging.debug('Running:%s',self.active)
+        
+        def makeInactive(self,name):
+            with self.lock:
+                self.active.remove(name)
+                logging.debug('Running:%s',self.active)
+
+    def worker(s,pool):
+        logging.debug('waiting to join the pool')
+        with s:
+            name =threading.current_thread().getName()
+            pool.makeActive(name)
+            time.sleep(0.1)
+            pool.makeInactive(name)
+    
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='(%(threadName)-10s) %(message)s'
+    )
+
+    pool =ActivePool()
+    s =threading.Semaphore(2)
+    for i in range(4):
+        t =threading.Thread(
+            target=worker,
+            name=str(i),
+            args=(s,pool)
+        )
+        t.start()
+
+def model15():
+    def show_value(data):
+        try:
+            val =data.value
+        except AttributeError:
+            logging.debug('No value yet')
+        else:
+            logging.debug('value=%s',val)
+    
+    def worker(data):
+        show_value(data)
+        data.value =random.randint(1,100)
+        show_value(data)
+    
+    class mylocal(threading.local):
+        def __init__(self,value):
+            super().__init__()
+            logging.debug('Initializing %r',self)
+            self.value =value
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='(%(threadName)-10s) %(message)s'
+    )
+
+    # local_data =threading.local()
+    # show_value(local_data)
+    # local_data.value =1000
+    # show_value(local_data)
+    local_data =mylocal(1000)
+    show_value(local_data)
+
+    for i in range(2):
+        t =threading.Thread(target=worker,args=(local_data,))
+        t.start()
+
+
 if __name__ == "__main__":
-    model8()
+    model15()
