@@ -51,29 +51,28 @@ def example1():
     while True:
         print("waiting")
         time.sleep(3)
-    
-'''
+  
 def example2():
-    def alarm_recevied(n,stack):
+
+    def alarm_received(n, stack):
         return
 
-    signal.signal(signal.SIGALRM,alarm_recevied)
 
-    signal_to_name ={
-        getattr(signal,n):n
-        for n in dir(signal) 
-        if n.startswith('SIG') and '_' in n
+    signal.signal(signal.SIGALRM, alarm_received)
 
+    signals_to_names = {
+        getattr(signal, n): n
+        for n in dir(signal)
+        if n.startswith('SIG') and '_' not in n
     }
 
-    for s,name in sorted(signal_to_name.items()):
+    for s, name in sorted(signals_to_names.items()):
         handler = signal.getsignal(s) #获取信号有没有绑定信号事件
         if handler is signal.SIG_DFL: #判断有没有绑定事件，没有的话进行设置
-            handler ="SIG_DFL"
+            handler = 'SIG_DFL'
         elif handler is signal.SIG_IGN:
-            handler ="SIG_IGN"
-        print('{:<10} ({:2d}):'.format(name,s),handler)
-'''
+            handler = 'SIG_IGN'
+        print('{:<10} ({:2d}):'.format(name, s), handler)
 
 def example3():
     def receive_alarm(signum,stack):
@@ -159,5 +158,5 @@ def example6():
     print(time.ctime(),'exiting normally')
 
 if __name__ =="__main__":
-    example6()
+    example2()
 
