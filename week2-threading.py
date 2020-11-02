@@ -5,54 +5,21 @@ import random
 
 
 
-def work0(t):
-    print(threading.current_thread().getName(),'starting')
-    time.sleep(int(t))
-    print(threading.current_thread().getName(),'exiting')
 
-def work1(t):
-    print(threading.current_thread().getName(),'starting')
-    time.sleep(int(t))
-    print(threading.current_thread().getName(),'exiting')
-
-def work2():
-    logging.debug('starting')
-    time.sleep(2)
-    logging.debug('exting')
-
-def work3():
-    logging.debug('starting')
-    time.sleep(0.2)
-    logging.debug('exting')
-
-def non_daemon():
-    logging.debug('statring')
-    logging.debug('exiting')
-
-def work4():
-    pause =random.randint(1,5)/10
-    logging.debug('sleeping %0.2f',pause)
-    time.sleep(pause)
-    logging.debug('ending')
-
-def work5():
-    logging.debug('working running')
-
-
-
-class myThread(threading.Thread):
-    def __init__(self,group=None,target=None,name=None,args=(),kwargs=None,*,daemon=True):
-        super().__init__(group=group,target=target,name=name,daemon=daemon)
-        self.args =args
-        self.kwargs =kwargs
-
-    def run(self):
-        logging.debug('running %s and %s',self.args,self.kwargs)
-
-################################################################################################################################
 
 
 def model0():
+
+    def work0(t):
+        print(threading.current_thread().getName(),'starting')
+        time.sleep(int(t))
+        print(threading.current_thread().getName(),'exiting')
+
+    def work1(t):
+        print(threading.current_thread().getName(),'starting')
+        time.sleep(int(t))
+        print(threading.current_thread().getName(),'exiting')
+
     a0 =threading.Thread(name="work0",target=work0,args=(1,))
     a1 =threading.Thread(name='work1',target=work1,args=(1,))  
     a2 =threading.Thread(target=work0,args=(1,)) #使用默认的名字
@@ -61,6 +28,16 @@ def model0():
     a2.start()
 
 def model1():
+
+    def work2():
+        logging.debug('starting')
+        time.sleep(2)
+        logging.debug('exting')
+
+    def work3():
+        logging.debug('starting')
+        time.sleep(0.2)
+        logging.debug('exting')
     #%(message)s	日志记录的文本内容，通过 msg % args计算得到的
     #%(levelname)s	该日志记录的文字形式的日志级别（‘DEBUG’, ‘INFO’, ‘WARNING’, ‘ERROR’, ‘CRITICAL’）
     #%(threadName)-10s 拿到线程名字
@@ -76,6 +53,15 @@ def model1():
     b2.start()
 
 def model2():
+    def work3():
+        logging.debug('starting')
+        time.sleep(0.2)
+        logging.debug('exting')
+
+    def non_daemon():
+        logging.debug('statring')
+        logging.debug('exiting')
+
     logging.basicConfig(
         level=logging.DEBUG,
         format='(%(threadName)-10s) %(message)s',
@@ -95,6 +81,14 @@ def model3():
         format='(%(threadName)-10s) %(message)s',
     )
 
+
+    def work4():
+        pause =random.randint(1,5)/10
+        logging.debug('sleeping %0.2f',pause)
+        time.sleep(pause)
+        logging.debug('ending')
+
+
     for i in range(3):
         d =threading.Thread(target=work4,daemon=True)
         d.start()
@@ -111,6 +105,15 @@ def model3():
 
 
 def model4():
+    class myThread(threading.Thread):
+        def __init__(self,group=None,target=None,name=None,args=(),kwargs=None,*,daemon=True):
+            super().__init__(group=group,target=target,name=name,daemon=daemon)
+            self.args =args
+            self.kwargs =kwargs
+
+        def run(self):
+            logging.debug('running %s and %s',self.args,self.kwargs)
+
     logging.basicConfig(
         level=logging.DEBUG,
         format='(%(threadName)-10s) %(message)s'
@@ -121,6 +124,10 @@ def model4():
         e.start()
 
 def model5():
+
+    def work5():
+        logging.debug('working running')
+
     logging.basicConfig(
         level=logging.DEBUG,
         format='(%(threadName)-10s) %(message)s'
@@ -222,6 +229,62 @@ def model7():
         if i is not main_thread:
             i.join()
     logging.debug('Counter: %d',counter.value)
-    
+
+def model8():
+    def lock_holder(lock):
+        logging.debug('Starting')
+        while True:
+            lock.acquire()
+            try:
+                logging.debug('Holding')
+                time.sleep(0.5)
+            finally:
+                logging.debug('Not holding')
+                lock.release()
+            time.sleep(0.5)
+
+    def worker(lock):
+        logging.debug('Starting')
+        num_tries =0
+        num_acquires =0
+        while num_acquires <3:
+            time.sleep(0.5)
+            logging.debug('Trying to acquire')
+            have_it =lock.acquire(0)
+            try:
+                num_tries += 1
+                if have_it:
+                    logging.debug("Iteration %d: Acquired",num_tries)
+                else:
+                    logging.debug("Iteration %d: Not Acquired",num_tries)    
+            finally:
+                if have_it:
+                    lock.release()
+        logging.debug('done after %d iterations',num_tries)
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='(%(threadName)-10s) %(message)s'
+    )
+
+    lock =threading.Lock()
+
+    holder =threading.Thread(
+        target=lock_holder,
+        args=(lock,),
+        name='LockHolder',
+        daemon=True
+    )
+
+    holder.start()
+
+    worker_t =threading.Thread(
+        target=worker,
+        args=(lock,),
+        name='Worker'
+    )
+
+    worker_t.start()
+        
 if __name__ == "__main__":
-    model7()
+    model8()
