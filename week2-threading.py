@@ -2,11 +2,10 @@ import threading
 import time
 import logging
 import random
-
-
-
-
-
+#当主线程执行完毕后，子线程随即停止
+#线程共享的环境包括进程代码段、进程的公有数据等，利用这些共享的数据，线程之间很容易实现通信。
+#设置守护线程之后，当主线程结束时，子线程也将立即结束
+#join让主线程等待其他线程结束
 
 def model0():
 
@@ -26,6 +25,7 @@ def model0():
     a1.start()
     a0.start()
     a2.start()
+
 
 def model1():
 
@@ -72,35 +72,36 @@ def model2():
     c1.start()
     
 
-    c0.join(0.1) #使用join可以等待守护线程退出,传入一个数字，表示阻塞时间,因为时间小于work3中的时间，所以无法看到work3结束的消息
+    c0.join(0.3) #使用join可以等待守护线程退出,传入一个数字，表示阻塞时间,因为时间小于work3中的时间，所以无法看到work3结束的消息
+    print('c1.isAlive():',c1.is_alive())
     print('c0.isAlive():',c0.is_alive())
 
 def model3(): 
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='(%(threadName)-10s) %(message)s',
-    )
-
-
+    
     def work4():
         pause =random.randint(1,5)/10
         logging.debug('sleeping %0.2f',pause)
         time.sleep(pause)
         logging.debug('ending')
 
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='(%(threadName)-10s) %(message)s',
+    )
 
     for i in range(3):
         d =threading.Thread(target=work4,daemon=True)
         d.start()
         
-    main_thread =threading.main_thread()
+    main_thread =threading.main_thread() #是Python中线程模块的内置方法。 它用于返回主线程对象
 
     for d in threading.enumerate(): #返回存活的thread实例
         if d is main_thread: #不跳过去会导致死锁
-            print('current thread:',d.getName())
+            #print('current thread:',d.getName())
             continue
-        logging.debug('joining %s',d.getName())
-        d.join()
+        else:
+            logging.debug('joining %s',d.getName())
+            d.join()
     
 
 
@@ -126,50 +127,60 @@ def model4():
 def model5():
 
     def work5():
-        logging.debug('working running')
+        print(time.strftime('%H:%M:%S',time.localtime()))
+        logging.debug('working running 0')
+        # time.sleep(1)
+        # logging.debug('working running 1')
 
     logging.basicConfig(
         level=logging.DEBUG,
         format='(%(threadName)-10s) %(message)s'
     )
-    f0 =threading.Timer(0.3,work5) #在延时后，timer开始工作
+
+    f0 =threading.Timer(1,work5) #在延时后，timer开始工作,threading.Timer创建的是一个线程！这个细节要注意，定时器基本上都是在线程中执行
     f0.setName('f0') 
-    f1 =threading.Timer(0.3,work5)
+    f1 =threading.Timer(1,work5)
     f1.setName('f1')
 
+    print(time.strftime('%H:%M:%S',time.localtime()))
     logging.debug('starting timers')
     f0.start()
     f1.start()
-
+    print(time.strftime('%H:%M:%S',time.localtime()))
     logging.debug('waiting befor canceling %s',f1.getName())
-    time.sleep(0.2)
+    time.sleep(2)
+    print(time.strftime('%H:%M:%S',time.localtime()))
     logging.debug('canceling %s',f1.getName())
-    f1.cancel()
+    f0.cancel()
     logging.debug('done')
 
-def model6():
 
+def model6():
     def wait_for_event(e):
         logging.debug('wait_for_event starting')
         event_is_set =e.wait()
         logging.debug('wait_for_event starting event set: %s',event_is_set)
 
     def wait_for_event_timeout(e,t):
-        while not e.is_set():
-            logging.debug('wait_for_event_timeout starting')
-            event_is_set =e.wait(t) #t表示为一个时间，超过时间返回一个布尔值，指示是否设置了事件
-            logging.debug('wait_for_event_timeout event set: %s',event_is_set)
-            if event_is_set:
-                logging.debug('processing event')
-            else:
-                logging.debug('doing other work')
+        #while not e.is_set():
+        logging.debug('wait_for_event_timeout starting')
+        event_is_set =e.wait(t) #t表示为一个时间，调用该方法的线程会被阻塞,超过时间返回一个布尔值，线程会停止阻塞继续执行 指示是否设置了事件
+        logging.debug('wait_for_event_timeout event set: %s',event_is_set)  #event.isSet()：判断event的标志是否为True。
+        if event_is_set:
+            logging.debug('processing event')
+        else:
+            logging.debug('doing other work')
 
     logging.basicConfig(
         level=logging.DEBUG,
         format='(%(threadName)-10s) %(message)s'
     )
-    event_ =threading.Event()
 
+    event_ =threading.Event()
+    #通过threading.Event()可以创建一个事件管理标志，该标志（event）默认为False
+    #event.wait(timeout=None)：调用该方法的线程会被阻塞，如果设置了timeout参数，超时后，线程会停止阻塞继续执行；
+    #event.clear()：将event的标志设置为False，调用wait方法的所有线程将被阻塞；
+   
     g0 =threading.Thread(
         name='block',
         target=wait_for_event,
@@ -180,14 +191,16 @@ def model6():
     g1 =threading.Thread(
         name ="nonblock",
         target=wait_for_event_timeout,
-        args=(event_,2),
+        args=(event_,0.1),
+        #daemon=True
     )
     g1.start()
 
     logging.debug('waiting before calling event.set()')
     time.sleep(1)
-    event_.set()
+    event_.set()#event.set()：将event的标志设置为True，调用wait方法的所有线程将被唤醒；
     logging.debug('event is set')
+
 
 def model7():
 
@@ -483,4 +496,4 @@ def model15():
 
 
 if __name__ == "__main__":
-    model15()
+    model6()
