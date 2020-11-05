@@ -264,6 +264,7 @@ def model8():
             time.sleep(0.5)
             logging.debug('Trying to acquire')
             have_it =lock.acquire(0)
+            print('--:',have_it)
             try:
                 num_tries += 1
                 if have_it:
@@ -301,9 +302,12 @@ def model8():
 
 
 def model9():
-    lock =threading.RLock()
-    print('First try:',lock.acquire())
-    print('second try:',lock.acquire(0))
+    lock =threading.Lock()
+    lock1 =threading.RLock()
+    print('lock First try:',lock.acquire())
+    print('lock second try:',lock.acquire(0))
+    print('Rlock First try:',lock1.acquire())
+    print('Rlock second try:',lock1.acquire(0))
 
 
 def model10():
@@ -331,6 +335,10 @@ def model10():
     j1.start()
 
 def model11():
+    # Condition.acquire(self,*args)	获取锁
+    # Condition.wait(self,timeout=None)	等待通知，timeout设置超时时间
+    # Condition.notify(self,n=1)	唤醒至多指定数目个数的等待的线程，没有等待的线程就没有任何操作
+    # Condition.notify_all(self)	唤醒所有等待的线程
     def consumer(cond):
         logging.debug('starting consumer thread')
         with cond:
@@ -360,6 +368,18 @@ def model11():
     h2.start()
 
 def model12():
+    # Barrier(parties, action=None, timeout=None)
+    # 每个线程通过调用wait()尝试通过障碍，并阻塞，直到阻塞的数量达到parties时，阻塞的线程被同时全部释放。
+    # action是一个可调用对象，当线程被释放时，其中一个线程会首先调用action，之后再跑自己的代码。
+    # timeout时默认的超时时间。
+    # 方法：
+        # wait(timeout=None)
+        #     尝试通过障碍并阻塞。
+        #     返回值是一个在0到parties-1范围内的整数，每个线程都不同。
+        #     其中一个线程在释放之前将调用action。如果此调用引发错误，则障碍将进入断开状态。
+        #     如果等待超时，障碍也将进入断开状态。
+        #     如果在线程等待期间障碍断开或重置，此方法可能会引发BrokenBarrierError错误。
+       
     def worker(barrier):
         print(threading.current_thread().name,'waiting for barrier with {} others'.format(barrier.n_waiting))
         worker_id =barrier.wait()
@@ -386,6 +406,14 @@ def model12():
 
 
 def model13():
+    # abort()
+        # 将障碍置为断开状态，这将导致已调用wait()或之后调用wait()引发BrokenBarrierError。
+        # 属性：
+            # partier 通过障碍所需的线程数。
+            # n_waiting 当前在屏障中等待的线程数
+            # broken 如果屏障处于断开状态，则返回True。
+    # reset()
+        # 重置障碍，返回默认的空状态，即当前阻塞的线程重新来过
     def worker(barrier):
         print(threading.current_thread().name,'waiting for barrier with {} others'.format(barrier.n_waiting))
         try:
@@ -419,9 +447,12 @@ def model13():
         t.join()
 
 def model14():
+    #Semaphore 管理一个计数器，每调用一次 acquire() 方法，计数器就减一，每调用一次 release() 方法，计数器就加一。
+    #计时器的值默认为 1 ，计数器的值不能小于 0，当计数器的值为 0 时，调用 acquire() 的线程就会等待，直到 release() 被调用。 
+    #因此，可以利用这个特性来控制线程数量
     class ActivePool():
         def __init__(self):
-            super(ActivePool,self).__init__()
+            #super(ActivePool,self).__init__()
             self.active =[]
             self.lock =threading.Lock()
         
@@ -459,6 +490,7 @@ def model14():
         t.start()
 
 def model15():
+    #threading.local()的作用就是为每个线程开辟一个独立的空间进行数据存储。
     def show_value(data):
         try:
             val =data.value
@@ -496,4 +528,4 @@ def model15():
 
 
 if __name__ == "__main__":
-    model6()
+    model15()
