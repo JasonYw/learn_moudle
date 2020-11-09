@@ -302,6 +302,7 @@ def model8():
 
 
 def model9():
+    #lock.acquire(timeout) 超时阻塞
     lock =threading.Lock()
     lock1 =threading.RLock()
     print('lock First try:',lock.acquire())
