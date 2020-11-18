@@ -78,7 +78,6 @@ def multiprocessing_daemon():
         p=multiprocessing.current_process()
         print('starting:',p.name,p.pid)
         sys.stdout.flush()
-        time.sleep(2)
         print('exiting:',p.name,p.pid)
         sys.stdout.flush()
 
@@ -95,6 +94,7 @@ def multiprocessing_daemon():
     
     n.daemon =False
 
+    #n.start()
     d.start()
     time.sleep(1)
     n.start()
@@ -131,8 +131,9 @@ def multiprocessing_daemon_join():
     n.join()    
 
 def multiprocessing_terminate():
+    #但是如果进程似乎挂起或死锁，则可以强制将其杀死。 。调用terminate() 流程对象将杀死子流程。
     def slow_worker():
-        print('starting workrt')
+        print('starting worker')
         time.sleep(0.2)
         print('finished worker')
 
@@ -182,7 +183,7 @@ def multiprocessing_exitcode():
     jobs[-1].terminate()
     
     for job in jobs:
-        #exitcode ==0:没有产生错误 >0 该过程有一个错误，并推出该代码   <0 这个过程杀死了-1*exitcode
+        #exitcode ==0:没有产生错误 >0:该过程有一个错误，并退出该代码   <0:这个过程杀死了-1*exitcode
         job.join()
         print('{:>15}.exitcode ={}'.format(job.name,job.exitcode))
     
@@ -218,4 +219,4 @@ def multiprocessing_subclass():
 
 
 if __name__ =="__main__":
-    multiprocessing_subclass()
+    multiprocessing_log_to_stderr()
